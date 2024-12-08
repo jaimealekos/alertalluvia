@@ -11,7 +11,7 @@
 #
 # alertalluvia 0.1 por Jaime Alekos - 27/Nov/2024 - http://www.jaimealekos.com - contacto [arroba] jaimealekos [punto] com
 #
-# Extrae los valores 'Time', 'Precip. Rate' and 'Precip. Accum.' de las últimas 24h de una estación meteorológica de wunderground.com
+# Extrae los valores 'Time', 'Precip. Rate' y 'Precip. Accum.' de las últimas 24h de una estación meteorológica de wunderground.com
 # Para cada fila de datos, genera una cuarta columna, 'Precip. Accum. / última hora'
 # Si el valor de 'Precip. Accum. / última hora' supera un umbral definido por el usuario, muestra una alerta roja
 # También marca en rojo 'Precip. Rate' y 'Precip. Accum.' cuando superan un umbral definido por el usuario
