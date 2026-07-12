@@ -1,176 +1,224 @@
-#  ▄▄▄      ██▓   ▓█████ ██▀███ ▄▄▄█████▓▄▄▄      ██▓    ██▓    █    ██ ██▒   █▓██▓▄▄▄      
-# ▒████▄   ▓██▒   ▓█   ▀▓██ ▒ ██▓  ██▒ ▓▒████▄   ▓██▒   ▓██▒    ██  ▓██▓██░   █▓██▒████▄    
-# ▒██  ▀█▄ ▒██░   ▒███  ▓██ ░▄█ ▒ ▓██░ ▒▒██  ▀█▄ ▒██░   ▒██░   ▓██  ▒██░▓██  █▒▒██▒██  ▀█▄  
-# ░██▄▄▄▄██▒██░   ▒▓█  ▄▒██▀▀█▄ ░ ▓██▓ ░░██▄▄▄▄██▒██░   ▒██░   ▓▓█  ░██░ ▒██ █░░██░██▄▄▄▄██ 
+#!/usr/bin/env python3
+#  ▄▄▄      ██▓   ▓█████ ██▀███ ▄▄▄█████▓▄▄▄      ██▓    ██▓    █    ██ ██▒   █▓██▓▄▄▄
+# ▒████▄   ▓██▒   ▓█   ▀▓██ ▒ ██▓  ██▒ ▓▒████▄   ▓██▒   ▓██▒    ██  ▓██▓██░   █▓██▒████▄
+# ▒██  ▀█▄ ▒██░   ▒███  ▓██ ░▄█ ▒ ▓██░ ▒▒██  ▀█▄ ▒██░   ▒██░   ▓██  ▒██░▓██  █▒▒██▒██  ▀█▄
+# ░██▄▄▄▄██▒██░   ▒▓█  ▄▒██▀▀█▄ ░ ▓██▓ ░░██▄▄▄▄██▒██░   ▒██░   ▓▓█  ░██░ ▒██ █░░██░██▄▄▄▄██
 #  ▓█   ▓██░██████░▒████░██▓ ▒██▒ ▒██▒ ░ ▓█   ▓██░██████░██████▒▒█████▓   ▒▀█░ ░██░▓█   ▓██▒
 #  ▒▒   ▓▒█░ ▒░▓  ░░ ▒░ ░ ▒▓ ░▒▓░ ▒ ░░   ▒▒   ▓▒█░ ▒░▓  ░ ▒░▓  ░▒▓▒ ▒ ▒   ░ ▐░ ░▓  ▒▒   ▓▒█░
 #   ▒   ▒▒ ░ ░ ▒  ░░ ░  ░ ░▒ ░ ▒░   ░     ▒   ▒▒ ░ ░ ▒  ░ ░ ▒  ░░▒░ ░ ░   ░ ░░  ▒ ░ ▒   ▒▒ ░
-#   ░   ▒    ░ ░     ░    ░░   ░  ░       ░   ▒    ░ ░    ░ ░   ░░░ ░ ░     ░░  ▒ ░ ░   ▒   
+#   ░   ▒    ░ ░     ░    ░░   ░  ░       ░   ▒    ░ ░    ░ ░   ░░░ ░ ░     ░░  ▒ ░ ░   ▒
 #       ░  ░   ░  ░  ░  ░  ░                  ░  ░   ░  ░   ░  ░  ░          ░  ░       ░  ░
-#                                                                           ░               
-#
-# alertalluvia 0.1 por Jaime Alekos - 27/Nov/2024 - http://www.jaimealekos.com - contacto [arroba] jaimealekos [punto] com
-#
-# Extrae los valores 'Time', 'Precip. Rate' y 'Precip. Accum.' de las últimas 24h de una estación meteorológica de wunderground.com
-# Para cada fila de datos, genera una cuarta columna, 'Precip. Accum. / última hora'
-# Si el valor de 'Precip. Accum. / última hora' supera un umbral definido por el usuario, muestra una alerta roja
-# También marca en rojo 'Precip. Rate' y 'Precip. Accum.' cuando superan un umbral definido por el usuario
-#
-# Lista de estaciones meteorológicas de wunderground.com: https://www.wunderground.com/wundermap
-#
-# Uso: alertalluvia <ID de estación>
-# Ejemplo: alertalluvia ICHIVA39
-#
+#                                                                           ░
+"""alertalluvia — Alerta de lluvia intensa en estaciones de Weather Underground.
 
+Extrae la hora, la intensidad de lluvia ('Precip. Rate') y el agua acumulada
+('Precip. Accum.') de las últimas 24 horas de una estación meteorológica de
+wunderground.com y, para cada registro, calcula una cuarta columna: el agua
+acumulada durante la última hora.
+
+Si el agua acumulada en una hora supera el umbral configurado, muestra una
+alerta roja. También marca en rojo 'Precip. Rate' y 'Precip. Accum.' cuando
+superan sus propios umbrales.
+
+Lista de estaciones meteorológicas: https://www.wunderground.com/wundermap
+
+Uso:
+    alertalluvia.py <ID de estación> [opciones]
+
+Ejemplo:
+    alertalluvia.py ICHIVA39
+
+Autor: Jaime Alekos - http://www.jaimealekos.com - contacto [arroba] jaimealekos [punto] com
+"""
+
+import argparse
+import os
 import re
 import sys
-import requests
-
-from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
-# Configuración alertas - Agua en mm
-umbral_lluvia_acumulada_por_hora = 300 
-umbral_lluvia_ahora = 60
-umbral_lluvia_acumulada_total = 250
+import requests
 
-# Convierte una hora en sistema horario de 12 horas a formato militar
+__version__ = "0.2"
+
+# Umbrales de alerta por defecto (agua en mm)
+UMBRAL_LLUVIA_ACUMULADA_POR_HORA = 90
+UMBRAL_LLUVIA_AHORA = 60
+UMBRAL_LLUVIA_ACUMULADA_TOTAL = 250
+
+# wunderground.com ya no incluye la tabla de datos en el HTML de la página
+# (se rellena con JavaScript), así que los datos se piden a la misma API JSON
+# que usa la web. La clave pública de la API se extrae de la página de la
+# estación; si no se encuentra, se usa esta última clave conocida.
+URL_DASHBOARD = "https://www.wunderground.com/dashboard/pws/{estacion}"
+URL_API = ("https://api.weather.com/v2/pws/history/all"
+           "?stationId={estacion}&format=json&units=m&date={dia}&apiKey={api_key}")
+API_KEY_CONOCIDA = "e1f10a1e78da46f5b10a1e78da96f525"
+
+TIMEOUT_SEGUNDOS = 30
+
+# Códigos de escape ANSI para el formato de la salida
+NEGRITA = "\033[1m"
+RESET = "\033[0m"
+VERDE = "\033[32m"
+ROJO = "\033[31m"
+
+
 def convertir_hora(fecha_hora_str):
-    return datetime.strptime(fecha_hora_str, "%Y-%m-%d %I:%M %p")
+    """Convierte una cadena 'AAAA-MM-DD HH:MM:SS' en un objeto datetime."""
+    return datetime.strptime(fecha_hora_str, "%Y-%m-%d %H:%M:%S")
 
-# Extrae la fecha de los datos de la url de una estación meteorológica de wunderground.com
-def extraer_fecha(texto):
-    patron = r'\b(\d{4}-\d{2}-\d{2})\b'
-    coincidencia = re.search(patron, texto)
+
+def obtener_api_key(estacion):
+    """Extrae la clave pública de la API de la página de la estación.
+
+    Si no se puede descargar la página o no contiene ninguna clave, devuelve
+    la última clave pública conocida.
+    """
+    try:
+        respuesta = requests.get(URL_DASHBOARD.format(estacion=estacion), timeout=TIMEOUT_SEGUNDOS)
+        respuesta.raise_for_status()
+    except requests.RequestException:
+        return API_KEY_CONOCIDA
+
+    coincidencia = re.search(r"apiKey=([0-9a-f]{32})", respuesta.text)
     if coincidencia:
         return coincidencia.group(1)
-    return None
+    return API_KEY_CONOCIDA
 
-# Extrae la tabla de datos de un día entero de la web de una estación meteorológica de wunderground.com
-def extraer_estacion_wunderground(estacion, dia):
-    url_tabla="https://www.wunderground.com/dashboard/pws/"+estacion+"/table/"+dia+"/"+dia+"/daily"
-    respuesta = requests.get(url_tabla)
 
-    if respuesta.status_code == 200:
-        html = respuesta.text
+def extraer_estacion_wunderground(estacion, dia, api_key):
+    """Descarga las observaciones de un día entero de una estación de wunderground.com.
 
-        sopa = BeautifulSoup(html, 'html.parser')
-        tablas = sopa.find_all('table', class_='history-table')
+    Devuelve una lista de filas [fecha y hora, intensidad de lluvia en mm,
+    agua acumulada en mm]. Las observaciones sin datos de precipitación se
+    descartan.
+    """
+    url = URL_API.format(estacion=estacion, dia=dia.replace("-", ""), api_key=api_key)
 
-        # La tabla HTML que contiene los datos es la segunda
-        if len(tablas) >= 2:
-            tabla = tablas[1]
-            filas = []
-            fecha = extraer_fecha(url_tabla)
+    try:
+        respuesta = requests.get(url, timeout=TIMEOUT_SEGUNDOS)
+        respuesta.raise_for_status()
+    except requests.RequestException as error:
+        sys.exit(f"Error al descargar los datos de la estación '{estacion}': {error}")
 
-            for tr in tabla.find_all('tr')[1:]:            
-                td_elements = tr.find_all('td')
+    # La API devuelve 204 (sin contenido) si la estación no tiene datos ese día
+    if respuesta.status_code == 204:
+        return []
 
-                if td_elements:
-                    fila = [td.text.strip() for td in td_elements]
-                    fila[0] = f"{fecha} {fila[0]}"
-                    filas.append(fila)
-            return filas
+    observaciones = respuesta.json().get("observations") or []
+    filas = []
 
-def extraer_lluvia(filas):
-    #Extrae 'HORA', 'PRECIP.RATE' y 'PRECIP. ACUM' de la tabla completa de datos
+    for observacion in observaciones:
+        fecha_hora = observacion.get("obsTimeLocal")
+        metrica = observacion.get("metric") or {}
+        lluvia_rate = metrica.get("precipRate")
+        lluvia_acum = metrica.get("precipTotal")
 
-    lluvia = []
+        if fecha_hora and lluvia_rate is not None and lluvia_acum is not None:
+            filas.append([fecha_hora, round(lluvia_rate, 2), round(lluvia_acum, 2)])
 
-    for fila in filas:
-        fecha_hora = str(fila[0])
-        precip = round(float(str(fila[8])[:-4]) * 25.4, 2)
-        precip_accum = round(float(str(fila[9])[:-4]) * 25.4, 2)
+    return filas
 
-        nueva_fila = [fecha_hora, precip, precip_accum]
-        lluvia.append(nueva_fila)    
 
+def calcular_acumulado_por_hora(filas):
+    """Añade a cada fila una cuarta columna con el agua acumulada en la última hora."""
     ultima_hora = []
-    tabla_con_acumulado_hora = []   
+    tabla_con_acumulado_hora = []
 
-    # Añade la columna 'P. ACUM/HORA' al final
-
-    for fila in lluvia:
-        fecha_hora_str, lluvia_rate, lluvia_acum = fila  # Desempaquetar fila
-
-        # Convierte la hora
+    for fecha_hora_str, lluvia_rate, lluvia_acum in filas:
         fecha_hora = convertir_hora(fecha_hora_str)
 
-        # Eliminar registros fuera de la última hora
+        # Descarta los registros anteriores a la última hora
         ultima_hora = [(h, l) for h, l in ultima_hora if h > fecha_hora - timedelta(hours=1)]
 
-        # Añadir el nuevo registro
+        # Añade el nuevo registro y calcula el agua acumulada en la última hora
         ultima_hora.append((fecha_hora, lluvia_rate))
-
-        # Calcular agua acumulada
         acumulado_hora = sum(l for _, l in ultima_hora)
 
-        # Añadir la nueva fila con el acumulado
-        tabla_con_acumulado_hora.append([fecha_hora_str, lluvia_rate, lluvia_acum, round(acumulado_hora, 2)])     
+        tabla_con_acumulado_hora.append([fecha_hora_str, lluvia_rate, lluvia_acum, round(acumulado_hora, 2)])
 
     return tabla_con_acumulado_hora
 
-def mostrar_lluvia_con_formato(tabla):
-    NEGRITA = "\033[1m"
-    RESET = "\033[0m"
-    VERDE = "\033[32m"
-    ROHO = "\033[31m"
 
-    # Calcular el límite de tiempo (últimas 24 horas)
-    ahora = datetime.now()
-    hace_24_horas = ahora - timedelta(hours=24)
+def mostrar_lluvia_con_formato(tabla, umbral_hora, umbral_ahora, umbral_total):
+    """Muestra la tabla de lluvia de las últimas 24 horas, coloreando cada valor
+    en verde o rojo según los umbrales de alerta."""
+    hace_24_horas = datetime.now() - timedelta(hours=24)
 
-    # Anchos de columna
     ancho_columnas = [27, 15, 15, 15]
 
-    # Imprimir encabezados
     encabezados = ["HORA", "PRECIP. RATE", "P. ACUM", "P. ACUM/HORA"]
     encabezado_formateado = "".join(f"{enc[:w]:<{w}}" for enc, w in zip(encabezados, ancho_columnas))
     print(NEGRITA + encabezado_formateado + RESET)
 
-    # Procesar y mostrar cada fila
-    for fila in tabla:
-        # Convertir la hora de la primera columna al formato datetime
-        fecha_hora_str = fila[0]
-        dt_obj = datetime.strptime(fecha_hora_str, "%Y-%m-%d %I:%M %p")
-        
-        # Filtrar solo filas dentro de las últimas 24 horas
-        if dt_obj >= hace_24_horas:
-            salida_fila = ""
+    for fecha_hora_str, lluvia_rate, lluvia_acum, acumulado_hora in tabla:
+        fecha_hora = convertir_hora(fecha_hora_str)
 
-            # Convertir la hora al formato militar
-            hora_militar = dt_obj.strftime("%Y-%m-%d %H:%M")
-            salida_fila += f"{NEGRITA}{hora_militar:<{ancho_columnas[0]}}{RESET}"
+        # Muestra solo las filas de las últimas 24 horas
+        if fecha_hora < hace_24_horas:
+            continue
 
-            # Segunda columna: float con color según valor
-            color = VERDE if fila[1] < umbral_lluvia_ahora else ROHO
-            salida_fila += f"{color}{fila[1]:<{ancho_columnas[1]}.2f}{RESET}"
+        hora = fecha_hora.strftime("%Y-%m-%d %H:%M")
+        salida_fila = f"{NEGRITA}{hora:<{ancho_columnas[0]}}{RESET}"
 
-            # Tercera columna: float con color según valor
-            color = VERDE if fila[2] < umbral_lluvia_acumulada_total else ROHO
-            salida_fila += f"{color}{fila[2]:<{ancho_columnas[2]}.2f}{RESET}"
+        color = VERDE if lluvia_rate < umbral_ahora else ROJO
+        salida_fila += f"{color}{lluvia_rate:<{ancho_columnas[1]}.2f}{RESET}"
 
-            # Cuarta columna: float con color y formato según valor
-            if fila[3] < umbral_lluvia_acumulada_por_hora:
-                color = VERDE
-                salida_fila += f"{color}{fila[3]:<{ancho_columnas[3]}.2f}{RESET}"
-            else:
-                color = f"{ROHO}{NEGRITA}"
-                salida_fila += f"{color}{fila[3]:<15.2f} ALERTA > "+str(umbral_lluvia_acumulada_por_hora)+f"mm/hora{RESET}"
+        color = VERDE if lluvia_acum < umbral_total else ROJO
+        salida_fila += f"{color}{lluvia_acum:<{ancho_columnas[2]}.2f}{RESET}"
 
-            print(salida_fila)
+        if acumulado_hora < umbral_hora:
+            salida_fila += f"{VERDE}{acumulado_hora:<{ancho_columnas[3]}.2f}{RESET}"
+        else:
+            salida_fila += f"{ROJO}{NEGRITA}{acumulado_hora:<{ancho_columnas[3]}.2f} ALERTA > {umbral_hora}mm/hora{RESET}"
 
-if __name__ == "__main__":    
-    if len(sys.argv) > 1:
-        hoy = datetime.now().strftime('%Y-%m-%d')
-        ayer = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        print(salida_fila)
 
-        datos_hoy = extraer_estacion_wunderground(sys.argv[1], hoy)
-        datos_ayer = extraer_estacion_wunderground(sys.argv[1], ayer)
 
-        tabla_lluvia =  extraer_lluvia(datos_ayer + datos_hoy)
+def crear_parser():
+    """Define los argumentos de la línea de comandos."""
+    parser = argparse.ArgumentParser(
+        prog="alertalluvia",
+        description="Alerta de lluvia intensa a partir de los datos de las últimas 24 horas "
+                    "de una estación meteorológica de wunderground.com.",
+        epilog="Lista de estaciones meteorológicas: https://www.wunderground.com/wundermap",
+    )
+    parser.add_argument("estacion", metavar="ESTACION",
+                        help="ID de la estación meteorológica (ejemplo: ICHIVA39)")
+    parser.add_argument("--umbral-hora", type=float, default=UMBRAL_LLUVIA_ACUMULADA_POR_HORA, metavar="MM",
+                        help="umbral de alerta para el agua acumulada en una hora, en mm (por defecto: %(default)s)")
+    parser.add_argument("--umbral-rate", type=float, default=UMBRAL_LLUVIA_AHORA, metavar="MM",
+                        help="umbral de alerta para la intensidad de lluvia, en mm (por defecto: %(default)s)")
+    parser.add_argument("--umbral-total", type=float, default=UMBRAL_LLUVIA_ACUMULADA_TOTAL, metavar="MM",
+                        help="umbral de alerta para el agua acumulada total, en mm (por defecto: %(default)s)")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    return parser
 
-        mostrar_lluvia_con_formato(tabla_lluvia)
 
-    else:
-        print("\nNo se proporcionó ningún argumento\n\nUso: alertalluvia <ID de estación>\n")
+def main():
+    argumentos = crear_parser().parse_args()
+
+    # Habilita los códigos de escape ANSI en la consola de Windows
+    if os.name == "nt":
+        os.system("")
+
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    ayer = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    api_key = obtener_api_key(argumentos.estacion)
+
+    filas = (extraer_estacion_wunderground(argumentos.estacion, ayer, api_key)
+             + extraer_estacion_wunderground(argumentos.estacion, hoy, api_key))
+
+    if not filas:
+        sys.exit(f"La estación '{argumentos.estacion}' no ha devuelto datos. "
+                 "Comprueba que el ID es correcto y que la estación está en línea.")
+
+    tabla_lluvia = calcular_acumulado_por_hora(filas)
+
+    mostrar_lluvia_con_formato(tabla_lluvia, argumentos.umbral_hora, argumentos.umbral_rate, argumentos.umbral_total)
+
+
+if __name__ == "__main__":
+    main()
