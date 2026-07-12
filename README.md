@@ -58,6 +58,16 @@ python alertalluvia.py ICHIVA39 --umbral-hora 60 --umbral-total 150
 
 ## Cómo funciona
 
+El programa descarga las observaciones de ayer y de hoy de la estación indicada y muestra las de las últimas 24 horas. Cada fila es un registro de la estación (uno cada pocos minutos, según la estación) con tres valores, siempre en milímetros:
+
+- **PRECIP. RATE** — la intensidad de lluvia en ese momento.
+- **P. ACUM** — el agua acumulada del día.
+- **P. ACUM/HORA** — la columna que añade el programa: el agua acumulada durante los 60 minutos anteriores al registro.
+
+Cada valor se muestra en verde mientras está por debajo de su umbral y en rojo cuando lo supera. Si *P. ACUM/HORA* rebasa su umbral, la fila muestra además el aviso `ALERTA`.
+
+## Origen de los datos
+
 wunderground.com no sirve la tabla de datos renderizada en el HTML de sus páginas (el navegador la rellena con JavaScript), por lo que el programa obtiene las observaciones de la misma API JSON que utiliza la propia web, usando su clave pública, que se extrae automáticamente de la página de la estación.
 
 ## Licencia
