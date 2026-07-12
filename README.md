@@ -58,7 +58,7 @@ python alertalluvia.py ICHIVA39 --umbral-hora 60 --umbral-total 150
 
 ## Cómo funciona
 
-Desde 2025, wunderground.com ya no incluye la tabla de datos en el HTML de sus páginas (se rellena con JavaScript), por lo que el programa obtiene las observaciones de la misma API JSON que utiliza la propia web, usando su clave pública, que se extrae automáticamente de la página de la estación.
+wunderground.com no sirve la tabla de datos renderizada en el HTML de sus páginas (el navegador la rellena con JavaScript), por lo que el programa obtiene las observaciones de la misma API JSON que utiliza la propia web, usando su clave pública, que se extrae automáticamente de la página de la estación.
 
 ## Licencia
 
